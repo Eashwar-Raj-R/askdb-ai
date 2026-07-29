@@ -1,42 +1,76 @@
 import os
+import json
+import logging
+import traceback
+
+from datetime import datetime
 
 from database import Database
-from ai import form_query, ai_response
+from ai import AI
 
-class Uber():
-# def main():
+class AskDb:
+
     def __init__(self):
+
+        #logging
+        os.makedirs("logs", exist_ok=True)
+        filename = f'logs/app_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.log'
+
+        logging.basicConfig(
+            filename=filename,
+            filemode='a',
+            level=logging.DEBUG,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.info('Starting application v1')
+
+        self.ai = AI()
         self.db = Database()
+
         self.table_def = self.db.desc_tables()
 
-        with open('table_definition.txt', 'w') as t:
-            t.write(str(self.table_def))
+        os.makedirs("./metadata", exist_ok=True)
+        with open(r'./metadata/table_definition.json', 'w') as handler:
+            json.dump(self.table_def, handler, indent= 4)
+
+        self.logger.info('Table definition written to JSON file')
 
     def ai_chat(self):
-        print('AI> Hey, How can i help you today?')
-
-        user_question = input('>>>').lower()
-
-        while True:
-            if user_question in ('exit', 'close'):
-                break
-
-            if not user_question:
-                print('Invalid input')
-                user_question = input('>>>').lower()
-
-            ai_query = form_query(self.table_def, user_question)
-            # print(ai_query)
-            if 'NO_QUERY_POSSIBLE' not in ai_query:
-                data = self.db.run_query(ai_query)
-
-                response = ai_response(data, user_question)
-                print(f'AI> {response}')
-            else:
-                print('invalid question')
+        try:
+            print('AI> Hey, How can i help you today?')
 
             user_question = input('>>>').lower()
+            self.logger.info(f'Human>>> {user_question}')
+
+            while True:
+                if user_question in ('exit', 'close'):
+                    print('Good Bye')
+                    self.logger.info(f'User Exited')
+                    self.db.close_connection()
+                    break
+
+                if not user_question:
+                    print('Invalid input')
+                    user_question = input('>>>').lower()
+
+                ai_sql_query = self.ai.form_sql_query(self.table_def, user_question)
+
+                if 'NO_QUERY_POSSIBLE' not in ai_sql_query and ai_sql_query:
+                    data = self.db.run_query(ai_sql_query)
+
+                    response = self.ai.ai_response(data, user_question)
+                    print(f'AI> {response}')
+                else:
+                    print('invalid question')
+
+                user_question = input('>>>').lower()
+                self.logger.info(f'Human>>> {user_question}')
+
+        except Exception as e:
+            self.logger.error(f'unexpected error occurred : {e} - {traceback.format_exc()}')
 
 if __name__ == "__main__":
-    uber = Uber()
-    uber.ai_chat()
+    askdb = AskDb()
+    askdb.ai_chat()
