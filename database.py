@@ -1,5 +1,3 @@
-import keyword
-
 import mysql.connector
 import os
 import traceback
