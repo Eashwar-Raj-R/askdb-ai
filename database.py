@@ -1,3 +1,5 @@
+import keyword
+
 import mysql.connector
 import os
 import traceback
@@ -74,13 +76,19 @@ class Database:
         try:
             cursor = self.db.cursor(dictionary=True)
 
-            self.logger.info(f'Executing query formed by AI: {query}')
+            forbidden_keywords = ['insert', 'update', 'delete', 'truncate', 'drop', 'merge', 'create', 'alter']
 
-            cursor.execute(query)
+            if not any(keyword in query.lower() for keyword in forbidden_keywords):
 
-            result = cursor.fetchall()
+                self.logger.info(f'Executing query formed by AI: {query}')
 
-            return result
+                cursor.execute(query)
+                result = cursor.fetchall()
+
+                return result
+            else:
+                print('DML commands are not allowed')
+                return None
 
         except Exception as e:
             self.logger.error(f'Error occurred while executing the query in database : {e} - {traceback.format_exc()} | query - {query}')

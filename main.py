@@ -60,8 +60,11 @@ class AskDb:
                 if 'NO_QUERY_POSSIBLE' not in ai_sql_query and ai_sql_query:
                     data = self.db.run_query(ai_sql_query)
 
-                    response = self.ai.ai_response(data, user_question)
-                    print(f'AI> {response}')
+                    if data:
+                        response = self.ai.ai_response(data, user_question)
+                        print(f'AI> {response}')
+                    else:
+                        print(f'invalid question')
                 else:
                     print('invalid question')
 
