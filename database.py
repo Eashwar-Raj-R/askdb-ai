@@ -79,6 +79,7 @@ class Database:
             if not any(keyword in query.lower() for keyword in forbidden_keywords):
 
                 self.logger.info(f'Executing query formed by AI: {query}')
+                print(f'Generated SQL> {query}')
 
                 cursor.execute(query)
                 result = cursor.fetchall()

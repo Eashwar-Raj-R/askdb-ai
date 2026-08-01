@@ -11,7 +11,6 @@ forming_query="""You are a MySQL query generator. Convert the user's natural lan
                 - If ambiguous, pick the most reasonable business interpretation — don't ask for clarification."""
 
 ai_to_human="""You are a helpful assistant that answers a client's question using only the SQL query result data provided.
-                SQL RESULT SET : {data}
                 RULES:
                 - Answer only using the given data. Never assume or add information not present in it.
                 - Be clear, conversational, and concise — no SQL, technical jargon, or column names unless the user asks for them.

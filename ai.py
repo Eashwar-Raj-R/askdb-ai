@@ -8,40 +8,45 @@ from prompts import forming_query, ai_to_human
 
 class AI:
 
-    def __init__(self):
+    def __init__(self, table_def):
         try:
             load_dotenv()
             self.logger = logging.getLogger('askdb.ai')
 
             self.client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
+            self.sql_ai_message = [{
+                    "role": "system",
+                    "content": forming_query.format(desc= table_def)
+                }]
+
+            self.response_ai_message = [{
+                    'role' : 'system',
+                    'content' : ai_to_human
+                }]
 
         except Exception as e:
             self.logger.error(f'Error occurred - {e} : {traceback.format_exc()}')
 
-    def form_sql_query(self, desc, question):
+    def form_sql_query(self, question):
 
         try:
-            messages = [{
-                        "role": "system",
-                        "content": forming_query.format(desc=desc)
-                    },
+            self.sql_ai_message.append(
                 {
                     "role": "user",
                     "content" : question
-                }
-            ]
+                })
 
             completion = self.client.chat.completions.create(
                 model = os.getenv('MODEL', 'openai/gpt-oss-120b'),
-                messages = messages,
+                messages = self.sql_ai_message,
                 temperature = 0.2,
                 max_completion_tokens = 2048,
             )
 
             response = completion.choices[0].message.content
 
-            messages.append({
+            self.sql_ai_message.append({
                 'role' : 'assistant',
                 'content' : response
             })
@@ -57,27 +62,22 @@ class AI:
     def ai_response(self, data, question):
 
         try:
-            messages = [
-                {
-                    'role' : 'system',
-                    'content' : ai_to_human.format(data=data)
-                },
+            self.response_ai_message.append(
                 {
                     "role": "user",
-                    "content": question
-                }
-            ]
+                    "content" : f"Question : {question}, Data Set : {data}"
+                })
 
             completion = self.client.chat.completions.create(
                 model = os.getenv('MODEL', 'openai/gpt-oss-120b'),
-                messages=messages,
+                messages=self.response_ai_message,
                 temperature=0.2,
                 max_completion_tokens=2048,
             )
 
             response = completion.choices[0].message.content
 
-            messages.append({
+            self.response_ai_message.append({
                 'role' : 'assistant',
                 'content' : response
             })

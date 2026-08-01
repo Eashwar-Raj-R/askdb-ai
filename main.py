@@ -26,10 +26,10 @@ class AskDb:
         self.logger = logging.getLogger(__name__)
         self.logger.info('Starting application v1')
 
-        self.ai = AI()
         self.db = Database()
-
         self.table_def = self.db.desc_tables()
+
+        self.ai = AI(self.table_def)
 
         os.makedirs("./metadata", exist_ok=True)
         with open(r'./metadata/table_definition.json', 'w') as handler:
@@ -44,27 +44,40 @@ class AskDb:
             user_question = input('>>>').lower()
             self.logger.info(f'Human>>> {user_question}')
 
+            query_history = []
+
             while True:
                 if user_question in ('exit', 'close'):
                     print('Good Bye')
+
                     self.logger.info(f'User Exited')
                     self.db.close_connection()
+
+                    with open('./metadata/query_history.json', 'w') as handler:
+                        json.dump(query_history, handler, indent=4)
+
                     break
 
                 if not user_question:
                     print('Invalid input')
                     user_question = input('>>>').lower()
 
-                ai_sql_query = self.ai.form_sql_query(self.table_def, user_question)
+                ai_sql_query = self.ai.form_sql_query(user_question)
 
-                if 'NO_QUERY_POSSIBLE' not in ai_sql_query and ai_sql_query:
+                query_history.append({
+                    'datetime' : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'human' : user_question,
+                    'generated_sql' : ai_sql_query
+                })
+
+                if ai_sql_query and 'NO_QUERY_POSSIBLE' not in ai_sql_query:
                     data = self.db.run_query(ai_sql_query)
 
                     if data:
                         response = self.ai.ai_response(data, user_question)
                         print(f'AI> {response}')
                     else:
-                        print(f'invalid question')
+                        print('Something went wrong running that query.')
                 else:
                     print('invalid question')
 
