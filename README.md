@@ -24,7 +24,8 @@ The application uses the database schema to generate SQL queries with an LLM, va
 
 - Python
 - MySQL
-- Groq API
+- LangChain
+- ChatGroq
 - python-dotenv
 - mysql-connector-python
 
